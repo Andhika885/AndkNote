@@ -1,14 +1,6 @@
-/* ANDK Note — Enhanced (no external libs)
-   Data model per note:
-   {
-     id: number,
-     title: string,
-     content: string,
-     tags: [string],
-     createdAt: number,
-     updatedAt: number,
-     pinned: boolean
-   }
+/* ANDK Note — Enhanced (fixed)
+   Single save handler, validation accepts title OR content,
+   and removes duplicated listeners that caused false "kosong" alerts.
 */
 
 const LS_KEY = "andkNotes_v2";
@@ -33,26 +25,29 @@ let notes = [];
 let showOnlyPinned = false;
 let activeTagFilter = "";
 
+// --- Init ---
 document.addEventListener("DOMContentLoaded", () => {
   loadNotes();
   renderNotes();
   populateTagFilter();
 });
 
+// --- UI helpers ---
 noteText.addEventListener("input", () => {
   charCount.textContent = `${noteText.value.length} chars`;
 });
 
-saveBtn.addEventListener("click", () => {
+// Single, canonical save handler (for both new and edit via temporary switching)
+function saveNewNoteHandler(e) {
   const title = noteTitle.value.trim();
   const content = noteText.value.trim();
   const rawTags = tagsInput.value.split(",").map(t => t.trim()).filter(Boolean);
-  if (!newTitle && !newContent) { 
-  alert("Catatan tidak boleh kosong!"); 
-  return; 
-}
 
-
+  // validate: allow save when either title OR content (or tags) has something
+  if (!title && !content && rawTags.length === 0) {
+    alert("Catatan tidak boleh kosong!");
+    return;
+  }
 
   const newNote = {
     id: Date.now(),
@@ -69,8 +64,12 @@ saveBtn.addEventListener("click", () => {
   resetEditor();
   renderNotes();
   populateTagFilter();
-});
+}
 
+// Attach the single handler
+saveBtn.addEventListener("click", saveNewNoteHandler);
+
+// Clear all
 clearAllBtn.addEventListener("click", () => {
   if (!confirm("Yakin hapus semua catatan? Tindakan ini tidak bisa di-undo.")) return;
   notes = [];
@@ -79,9 +78,8 @@ clearAllBtn.addEventListener("click", () => {
   populateTagFilter();
 });
 
-searchInput.addEventListener("input", () => {
-  renderNotes();
-});
+// Search / filters
+searchInput.addEventListener("input", () => renderNotes());
 
 filterPinnedBtn.addEventListener("click", () => {
   showOnlyPinned = !showOnlyPinned;
@@ -89,6 +87,7 @@ filterPinnedBtn.addEventListener("click", () => {
   renderNotes();
 });
 
+// Export / Import
 exportBtn.addEventListener("click", () => {
   const dataStr = JSON.stringify(notes, null, 2);
   const blob = new Blob([dataStr], { type: "application/json" });
@@ -109,7 +108,6 @@ importFile.addEventListener("change", (e) => {
     try {
       const imported = JSON.parse(ev.target.result);
       if (!Array.isArray(imported)) throw new Error("Format tidak valid");
-      // optional: merge or replace. Kita tanya user? supaya simple: gabung tapi jaga id unik
       imported.forEach(item => {
         item.id = item.id || Date.now() + Math.floor(Math.random() * 1000);
         notes.push(item);
@@ -131,7 +129,7 @@ tagFilter.addEventListener("change", () => {
   renderNotes();
 });
 
-/* Storage */
+// --- Storage ---
 function saveToStorage() {
   localStorage.setItem(LS_KEY, JSON.stringify(notes));
 }
@@ -154,7 +152,7 @@ function loadNotes() {
   }
 }
 
-/* Render */
+// --- Render ---
 function renderNotes() {
   const q = searchInput.value.trim().toLowerCase();
   notesList.innerHTML = "";
@@ -186,7 +184,6 @@ function renderNotes() {
 
   filtered.forEach(n => {
     const clone = document.importNode(noteTemplate, true);
-    const li = clone.querySelector("li");
     const titleEl = clone.querySelector(".note-title");
     const contentEl = clone.querySelector(".note-content");
     const pinBtn = clone.querySelector(".pin-btn");
@@ -211,24 +208,18 @@ function renderNotes() {
     });
 
     // actions
-    pinBtn.addEventListener("click", () => {
-      togglePin(n.id);
-    });
-
+    pinBtn.addEventListener("click", () => togglePin(n.id));
     deleteBtn.addEventListener("click", () => {
       if (!confirm("Hapus catatan ini?")) return;
       deleteNote(n.id);
     });
-
-    editBtn.addEventListener("click", () => {
-      openEditorForEdit(n.id);
-    });
+    editBtn.addEventListener("click", () => openEditorForEdit(n.id));
 
     notesList.appendChild(clone);
   });
 }
 
-/* Actions */
+// --- Actions ---
 function resetEditor() {
   noteTitle.value = "";
   noteText.value = "";
@@ -266,12 +257,19 @@ function openEditorForEdit(id) {
   saveBtn.classList.add("editing");
   saveBtn.dataset.editId = id;
 
-  // attach temporary handler
+  // detach the default save handler while editing, then attach finishEdit
+  saveBtn.removeEventListener("click", saveNewNoteHandler);
+
   const finishEdit = () => {
     const newTitle = noteTitle.value.trim();
     const newContent = noteText.value.trim();
     const newTags = tagsInput.value.split(",").map(t=>t.trim()).filter(Boolean);
-    if (!newContent) { alert("Catatan tidak boleh kosong!"); return; }
+
+    // validate: allow update if title OR content OR tags present
+    if (!newTitle && !newContent && newTags.length === 0) {
+      alert("Catatan tidak boleh kosong!");
+      return;
+    }
 
     const idx = notes.findIndex(x => x.id == id);
     if (idx === -1) return;
@@ -289,41 +287,14 @@ function openEditorForEdit(id) {
     saveBtn.classList.remove("editing");
     delete saveBtn.dataset.editId;
 
-    // remove listener
+    // cleanup: remove this finishEdit listener and reattach saveNewNoteHandler
     saveBtn.removeEventListener("click", finishEdit);
-    // reattach normal listener (below)
     saveBtn.addEventListener("click", saveNewNoteHandler);
   };
 
-  // remove existing default listener to avoid duplicate
-  saveBtn.removeEventListener("click", saveNewNoteHandler);
+  // attach finishEdit
   saveBtn.addEventListener("click", finishEdit);
 }
-
-/* Save handler for new note (kept separate for easy reattach) */
-function saveNewNoteHandler() {
-  const title = noteTitle.value.trim();
-  const content = noteText.value.trim();
-  const rawTags = tagsInput.value.split(",").map(t => t.trim()).filter(Boolean);
-  if (!content) return alert("Catatan tidak boleh kosong!");
-
-  const newNote = {
-    id: Date.now(),
-    title,
-    content,
-    tags: rawTags,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    pinned: false
-  };
-
-  notes.push(newNote);
-  saveToStorage();
-  resetEditor();
-  renderNotes();
-  populateTagFilter();
-}
-saveBtn.addEventListener("click", saveNewNoteHandler);
 
 /* Utility: populate tag filter list */
 function populateTagFilter() {
@@ -346,5 +317,3 @@ document.addEventListener("keydown", (e) => {
     saveBtn.click();
   }
 });
-
-
