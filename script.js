@@ -47,8 +47,7 @@ saveBtn.addEventListener("click", () => {
   const title = noteTitle.value.trim();
   const content = noteText.value.trim();
   const rawTags = tagsInput.value.split(",").map(t => t.trim()).filter(Boolean);
-  if (!title && !content) return alert("Catatan tidak boleh kosong!");
-
+  if (!content) return alert("Catatan tidak boleh kosong!");
 
   const newNote = {
     id: Date.now(),
