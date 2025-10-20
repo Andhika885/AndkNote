@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ANDK Note — Enhanced</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <h1>📝 ANDK Note</h1>
+      <small>Enhanced — EasyNotes features</small>
+    </div>
+
+    <div class="header-actions">
+      <input id="searchInput" type="search" placeholder="Cari catatan, tag, atau judul..." />
+      <button id="exportBtn" title="Export JSON">Export</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <button id="importBtn" title="Import JSON">Import</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="editor card">
+      <input id="noteTitle" type="text" placeholder="Judul catatan (opsional)" maxlength="80" />
+      <textarea id="noteText" placeholder="Tulis catatan kamu di sini..." rows="6"></textarea>
+
+      <div class="editor-row">
+        <input id="tagsInput" type="text" placeholder="Tags (pisah pakai koma) contoh: tugas, kuliah" />
+        <div class="editor-controls">
+          <span id="charCount">0</span>
+          <button id="saveBtn" class="btn-primary">Simpan</button>
+          <button id="clearAllBtn" class="btn-ghost" title="Hapus semua catatan">Hapus Semua</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="notes-panel">
+      <div class="panel-head">
+        <h2>Catatan Kamu</h2>
+        <div class="panel-filters">
+          <button id="filterPinnedBtn" class="filter-btn">Tampilkan Pinned</button>
+          <select id="tagFilter">
+            <option value="">Filter tag — Semua</option>
+          </select>
+        </div>
+      </div>
+
+      <ul id="notesList" class="notes-list"></ul>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>© 2025 ANDK Note — Andhika F. Arbania (atau nama lo). Built with ❤️</small>
+  </footer>
+
+  <template id="noteTemplate">
+    <li class="note card">
+      <div class="note-top">
+        <div class="meta">
+          <button class="pin-btn" title="Pin / Unpin">📌</button>
+          <h3 class="note-title"></h3>
+          <div class="tags"></div>
+        </div>
+        <div class="note-actions">
+          <button class="edit-btn" title="Edit">✏️</button>
+          <button class="delete-btn" title="Hapus">🗑️</button>
+        </div>
+      </div>
+
+      <p class="note-content"></p>
+
+      <div class="note-foot">
+        <small class="timestamps"></small>
+      </div>
+    </li>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
