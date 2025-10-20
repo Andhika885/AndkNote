@@ -47,7 +47,11 @@ saveBtn.addEventListener("click", () => {
   const title = noteTitle.value.trim();
   const content = noteText.value.trim();
   const rawTags = tagsInput.value.split(",").map(t => t.trim()).filter(Boolean);
-  if (!title && !content) return alert("Catatan tidak boleh kosong!");
+  if (!newTitle && !newContent) { 
+  alert("Catatan tidak boleh kosong!"); 
+  return; 
+}
+
 
 
   const newNote = {
@@ -342,4 +346,5 @@ document.addEventListener("keydown", (e) => {
     saveBtn.click();
   }
 });
+
 
